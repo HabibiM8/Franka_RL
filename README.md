@@ -23,8 +23,6 @@ inside the virtual environment.
 ## Installation (GPU)
 
 ```bash
-git clone <this-repo-url> Franka_RL
-cd Franka_RL
 
 python3 -m venv env
 source env/bin/activate
