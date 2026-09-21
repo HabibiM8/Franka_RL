@@ -1,0 +1,24 @@
+# environments
+env/
+env_*/
+.venv/
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+# training outputs
+runs/
+logs/
+rl-trained-agents/
+tb_logs/
+videos/
+checkpoints/
+*.zip
+# misc
+.vscode/
+.idea/
+MUJOCO_LOG.TXT
