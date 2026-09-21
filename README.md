@@ -1,55 +1,283 @@
-# Franka Emika Panda Description (MJCF)
+# Franka_RL (frankapp)
 
-## Overview
+Reinforcement learning for the Franka Emika Panda on manipulation tasks (push, slide, pick & place).
+Physics runs in [MuJoCo](https://mujoco.org/) on the CPU (one process per core), while the neural network
+updates run on the GPU through [SBX](https://github.com/araffin/sbx) (Stable-Baselines3 in JAX).
 
-This package contains a simplified robot description (MJCF) of the [Franka Emika
-Panda](https://www.franka.de/) developed by [Franka
-Emika](https://www.franka.de/company). It is derived from the [publicly
-available URDF
-description](https://github.com/frankaemika/franka_ros/tree/develop/franka_description).
+The current baseline is **TQC + HER** on the goal-conditioned Franka environments from
+[panda_mujoco_gym](https://github.com/zichunxx/panda_mujoco_gym).
 
-<p float="left">
-  <img src="panda.png" width="400">
-</p>
+---
 
-## URDF → MJCF derivation steps
+## Requirements
 
-1. Converted the DAE [mesh
-   files](https://github.com/frankaemika/franka_ros/tree/develop/franka_description/meshes/visual)
-   to OBJ format using [Blender](https://www.blender.org/).
-2. Processed `.obj` files with [`obj2mjcf`](https://github.com/kevinzakka/obj2mjcf).
-3. Eliminated the perfectly flat `link0_6` from the resulting submeshes created for `link0`.
-4. Created a convex decomposition of the STL collision [mesh
-   file](https://github.com/frankaemika/franka_ros/tree/develop/franka_description/meshes/collision)
-   for `link5` using [V-HACD](https://github.com/kmammou/v-hacd).
-5. Added `<mujoco> <compiler discardvisual="false"/> </mujoco>` to the
-   [URDF](https://github.com/frankaemika/franka_ros/tree/develop/franka_description/robots)'s
-   `<robot>` clause in order to preserve visual geometries.
-6. Loaded the URDF into MuJoCo and saved a corresponding MJCF.
-7. Matched inertial parameters with [inertial.yaml](
-   https://github.com/frankaemika/franka_ros/blob/develop/franka_description/robots/common/inertial.yaml).
-8. Added a tracking light to the base.
-9. Manually edited the MJCF to extract common properties into the `<default>` section.
-10. Added `<exclude>` clauses to prevent collisions between `link7` and `link8`.
-11. Manually designed collision geoms for the fingertips.
-12. Added position-controlled actuators for the arm.
-13. Added an equality constraint so that the left finger mimics the position of the right finger.
-14. Added a tendon to split the force equally between both fingers and a
-    position actuator acting on this tendon.
-15. Added `scene.xml` which includes the robot, with a textured groundplane, skybox, and haze.
+- Linux (x86_64)
+- NVIDIA GPU with a driver that supports **CUDA 12** (check with `nvidia-smi`)
+- Python 3.12
 
-### MJX
+You do **not** need a system-wide CUDA toolkit. `jax[cuda12]` installs the CUDA and cuDNN libraries as pip wheels
+inside the virtual environment.
 
-A version of the Franka Emika Panda environment was created for MJX. Steps:
+---
 
-1. Added `mjx_panda.xml`, forked from `panda.xml`.
-2. Added `mjx_scene.xml` and `mjx_single_cube.xml`, forked from `scene.xml`.
-3. Gripper collision geometries were modified to contain less geoms. A capsule collision geom was added to the hand.
-4. Solver parameters were tuned for performance.
-5. Actuator `kp` and `kv` were reduced for more stable simulation.
-6. Added a `site` to the gripper.
-7. Removed tendon and added position actuator for the gripper. Changed gripper `ctrlrange`.
+## Installation (GPU)
+
+```bash
+git clone <this-repo-url> Franka_RL
+cd Franka_RL
+
+python3 -m venv env
+source env/bin/activate
+
+pip install --upgrade pip setuptools wheel
+pip install -e .[dev,gpu]
+```
+
+Verify that JAX sees the GPU:
+
+```bash
+python -c "import jax; print(jax.devices())"
+# expected: [CudaDevice(id=0)]
+```
+
+If this prints only `CpuDevice`, SBX will silently train on the CPU. Check the NVIDIA driver with `nvidia-smi`.
+
+> **Note:** Stable-Baselines3 depends on PyTorch, so `torch` and its CUDA wheels are installed as well.
+> They are not used for training here, because SBX runs everything in JAX.
+
+Verify that the Franka environments load (a viewer window opens):
+
+```bash
+python -c "
+import gymnasium as gym, panda_mujoco_gym
+env = gym.make('FrankaPickAndPlaceSparse-v0', render_mode='human')
+env.reset()
+for _ in range(200): env.step(env.action_space.sample())
+env.close()
+"
+```
+
+---
+
+## Project structure
+
+```
+Franka_RL/
+├── setup.cfg / setup.py     # package metadata and dependencies
+├── frankapp/                # own code (wrappers, utilities, future tasks)
+├── panda_mujoco_gym/        # vendored Franka MuJoCo environments (MIT, see below)
+│   ├── __init__.py          # registers the env IDs with gymnasium
+│   ├── envs/                # FrankaEnv base class + one subclass per task
+│   └── assets/              # MuJoCo XML scenes (Menagerie Panda model)
+├── experiments/
+│   ├── train_tqc.py         # training: TQC + HER, 12 parallel envs
+│   └── eval_tqc.py          # evaluation with viewer and success rate
+├── tests/
+└── logs/                    # checkpoints and eval logs (created on training)
+```
+
+---
+
+## Environments
+
+| Env ID | Task | Actions |
+|---|---|---|
+| `FrankaPushSparse-v0` / `FrankaPushDense-v0` | push the cube to a target on the table | 3 (end-effector xyz) |
+| `FrankaSlideSparse-v0` / `FrankaSlideDense-v0` | strike a puck to a target on a low-friction table | 3 |
+| `FrankaPickAndPlaceSparse-v0` / `FrankaPickAndPlaceDense-v0` | pick the cube and place it at a target, possibly in the air | 4 (xyz + gripper) |
+
+All environments use the multi-goal API: the observation is a dict with `observation`, `achieved_goal` and
+`desired_goal`, so they work with `HerReplayBuffer`. Episodes are limited to 50 steps and end early on success.
+
+### How an env ID is resolved
+
+```
+"panda_mujoco_gym:FrankaPickAndPlaceSparse-v0"
+  │                 └─ looked up in the gymnasium registry → class + kwargs → XML loaded into MuJoCo
+  └─ module imported first → panda_mujoco_gym/__init__.py runs register(...)
+```
+
+Always pass the ID **with the module prefix** to `make_vec_env` / `gym.make`. `SubprocVecEnv` starts its workers
+with `forkserver`, and fresh worker processes do not see registrations made in the main process. The prefix makes
+each worker import the package itself. It also protects against linters removing a seemingly unused
+`import panda_mujoco_gym`.
+
+In single-process code (e.g. evaluation), a plain import works as well:
+
+```python
+import gymnasium as gym
+import panda_mujoco_gym
+
+gym.register_envs(panda_mujoco_gym)  # no-op, keeps ruff/IDEs from deleting the import
+```
+
+---
+
+## Usage
+
+### Training
+
+```bash
+python experiments/train_tqc.py
+```
+
+- 12 environments run in parallel on CPU cores (`N_ENVS`), and gradient steps run on the GPU.
+- The best model (by eval reward) is saved to `logs/<ENV_NAME>/best_model.zip`.
+- The final model is saved to `logs/<ENV_NAME>/final_model.zip`.
+
+Pick & place with sparse reward typically needs on the order of 1–2M environment steps.
+
+### Evaluation
+
+```bash
+python experiments/eval_tqc.py
+```
+
+This loads `logs/<ENV_NAME>/best_model`, renders the episodes, and prints the success rate.
+
+---
+
+## Modifications to the vendored `panda_mujoco_gym`
+
+`panda_mujoco_gym` has no `setup.py`/`pyproject.toml` and pins older dependency versions, so it is vendored into
+this repository (MIT license, original `LICENSE` kept in the package folder). Changes:
+
+- `envs/panda_env.py`, `FrankaEnv.step()`: `terminated = bool(info["is_success"])`. The original returned a
+  `numpy.float32`, which triggers a gymnasium API warning.
+
+It runs here with gymnasium 1.x and MuJoCo 3.x instead of the originally pinned gymnasium 0.29.1 / MuJoCo 2.3.3.
+
+---
+
+## Citations
+
+This project builds on the following work. Please cite them if you use this repository.
+
+**Franka MuJoCo environments (panda_mujoco_gym)**
+
+```bibtex
+@misc{xu2023opensource,
+  title         = {Open-Source Reinforcement Learning Environments Implemented in MuJoCo with Franka Manipulator},
+  author        = {Zichun Xu and Yuntao Li and Xiaohang Yang and Zhiyuan Zhao and Lei Zhuang and Jingdong Zhao},
+  year          = {2023},
+  eprint        = {2312.13788},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.RO}
+}
+```
+
+**MuJoCo**
+
+```bibtex
+@inproceedings{todorov2012mujoco,
+  title     = {MuJoCo: A physics engine for model-based control},
+  author    = {Todorov, Emanuel and Erez, Tom and Tassa, Yuval},
+  booktitle = {2012 IEEE/RSJ International Conference on Intelligent Robots and Systems},
+  pages     = {5026--5033},
+  year      = {2012},
+  doi       = {10.1109/IROS.2012.6386109}
+}
+```
+
+**MuJoCo Menagerie (Franka Panda model)**
+
+```bibtex
+@software{menagerie2022github,
+  title  = {{MuJoCo Menagerie: A collection of high-quality simulation models for MuJoCo}},
+  author = {Zakka, Kevin and Tassa, Yuval and {MuJoCo Menagerie Contributors}},
+  url    = {https://github.com/google-deepmind/mujoco_menagerie},
+  year   = {2022}
+}
+```
+
+**Gymnasium**
+
+```bibtex
+@article{towers2024gymnasium,
+  title   = {Gymnasium: A Standard Interface for Reinforcement Learning Environments},
+  author  = {Towers, Mark and Kwiatkowski, Ariel and Terry, Jordan and Balis, John U. and De Cola, Gianluca and Deleu, Tristan and Goul{\~a}o, Manuel and Kallinteris, Andreas and Krimmel, Markus and KG, Arjun and others},
+  journal = {arXiv preprint arXiv:2407.17032},
+  year    = {2024}
+}
+```
+
+**Gymnasium-Robotics**
+
+```bibtex
+@software{gymnasium_robotics2023github,
+  author  = {Rodrigo de Lazcano and Kallinteris Andreas and Jun Jet Tai and Seungjae Ryan Lee and Jordan Terry},
+  title   = {Gymnasium Robotics},
+  url     = {http://github.com/Farama-Foundation/Gymnasium-Robotics},
+  version = {1.3.1},
+  year    = {2024}
+}
+```
+
+**Stable-Baselines3**
+
+```bibtex
+@article{raffin2021sb3,
+  title   = {Stable-Baselines3: Reliable Reinforcement Learning Implementations},
+  author  = {Antonin Raffin and Ashley Hill and Adam Gleave and Anssi Kanervisto and Maximilian Ernestus and Noah Dormann},
+  journal = {Journal of Machine Learning Research},
+  year    = {2021},
+  volume  = {22},
+  number  = {268},
+  pages   = {1--8},
+  url     = {http://jmlr.org/papers/v22/20-1364.html}
+}
+```
+
+**SBX (Stable-Baselines3 in JAX)**: https://github.com/araffin/sbx, by Antonin Raffin (cite together with SB3).
+
+**JAX**
+
+```bibtex
+@software{jax2018github,
+  author  = {James Bradbury and Roy Frostig and Peter Hawkins and Matthew James Johnson and Chris Leary and Dougal Maclaurin and George Necula and Adam Paszke and Jake Vander{P}las and Skye Wanderman-{M}ilne and Qiao Zhang},
+  title   = {{JAX}: composable transformations of {P}ython+{N}um{P}y programs},
+  url     = {http://github.com/jax-ml/jax},
+  year    = {2018}
+}
+```
+
+**Flax**
+
+```bibtex
+@software{flax2020github,
+  author  = {Jonathan Heek and Anselm Levskaya and Avital Oliver and Marvin Ritter and Bertrand Rondepierre and Andreas Steiner and Marc van {Z}ee},
+  title   = {{F}lax: A neural network library and ecosystem for {JAX}},
+  url     = {http://github.com/google/flax},
+  year    = {2024}
+}
+```
+
+**TQC (algorithm)**
+
+```bibtex
+@inproceedings{kuznetsov2020tqc,
+  title     = {Controlling Overestimation Bias with Truncated Mixture of Continuous Distributional Quantile Critics},
+  author    = {Kuznetsov, Arsenii and Shvechikov, Pavel and Grishin, Alexander and Vetrov, Dmitry},
+  booktitle = {Proceedings of the 37th International Conference on Machine Learning (ICML)},
+  pages     = {5556--5566},
+  year      = {2020}
+}
+```
+
+**Hindsight Experience Replay**
+
+```bibtex
+@inproceedings{andrychowicz2017her,
+  title     = {Hindsight Experience Replay},
+  author    = {Andrychowicz, Marcin and Wolski, Filip and Ray, Alex and Schneider, Jonas and Fong, Rachel and Welinder, Peter and McGrew, Bob and Tobin, Josh and Abbeel, Pieter and Zaremba, Wojciech},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  volume    = {30},
+  year      = {2017}
+}
+```
+
+---
 
 ## License
 
-This model is released under an [Apache-2.0 License](LICENSE).
+MIT. The vendored `panda_mujoco_gym` is also MIT-licensed; its original license file is kept in `panda_mujoco_gym/LICENSE`.
