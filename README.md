@@ -31,20 +31,6 @@ pip install --upgrade pip setuptools wheel
 pip install -e .[dev,gpu]
 ```
 
-Verify that JAX sees the GPU:
-
-```bash
-python -c "import jax; print(jax.devices())"
-# expected: [CudaDevice(id=0)]
-```
-
-If this prints only `CpuDevice`, SBX will silently train on the CPU. Check the NVIDIA driver with `nvidia-smi`.
-
-> **Note:** Stable-Baselines3 depends on PyTorch, so `torch` and its CUDA wheels are installed as well.
-> They are not used for training here, because SBX runs everything in JAX.
-
-Verify that the Franka environments load (a viewer window opens):
-
 ```bash
 python -c "
 import gymnasium as gym, panda_mujoco_gym
@@ -87,64 +73,16 @@ Franka_RL/
 All environments use the multi-goal API: the observation is a dict with `observation`, `achieved_goal` and
 `desired_goal`, so they work with `HerReplayBuffer`. Episodes are limited to 50 steps and end early on success.
 
-### How an env ID is resolved
-
-```
-"panda_mujoco_gym:FrankaPickAndPlaceSparse-v0"
-  │                 └─ looked up in the gymnasium registry → class + kwargs → XML loaded into MuJoCo
-  └─ module imported first → panda_mujoco_gym/__init__.py runs register(...)
-```
-
-Always pass the ID **with the module prefix** to `make_vec_env` / `gym.make`. `SubprocVecEnv` starts its workers
-with `forkserver`, and fresh worker processes do not see registrations made in the main process. The prefix makes
-each worker import the package itself. It also protects against linters removing a seemingly unused
-`import panda_mujoco_gym`.
-
 In single-process code (e.g. evaluation), a plain import works as well:
 
 ```python
 import gymnasium as gym
 import panda_mujoco_gym
 
-gym.register_envs(panda_mujoco_gym)  # no-op, keeps ruff/IDEs from deleting the import
+gym.register_envs(panda_mujoco_gym)  
 ```
 
 ---
-
-## Usage
-
-### Training
-
-```bash
-python experiments/train_tqc.py
-```
-
-- 12 environments run in parallel on CPU cores (`N_ENVS`), and gradient steps run on the GPU.
-- The best model (by eval reward) is saved to `logs/<ENV_NAME>/best_model.zip`.
-- The final model is saved to `logs/<ENV_NAME>/final_model.zip`.
-
-Pick & place with sparse reward typically needs on the order of 1–2M environment steps.
-
-### Evaluation
-
-```bash
-python experiments/eval_tqc.py
-```
-
-This loads `logs/<ENV_NAME>/best_model`, renders the episodes, and prints the success rate.
-
----
-
-## Modifications to the vendored `panda_mujoco_gym`
-
-`panda_mujoco_gym` has no `setup.py`/`pyproject.toml` and pins older dependency versions, so it is vendored into
-this repository (MIT license, original `LICENSE` kept in the package folder). Changes:
-
-- `envs/panda_env.py`, `FrankaEnv.step()`: `terminated = bool(info["is_success"])`. The original returned a
-  `numpy.float32`, which triggers a gymnasium API warning.
-
-It runs here with gymnasium 1.x and MuJoCo 3.x instead of the originally pinned gymnasium 0.29.1 / MuJoCo 2.3.3.
-
 ---
 
 ## Citations
