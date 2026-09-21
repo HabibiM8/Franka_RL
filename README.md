@@ -73,14 +73,6 @@ Franka_RL/
 All environments use the multi-goal API: the observation is a dict with `observation`, `achieved_goal` and
 `desired_goal`, so they work with `HerReplayBuffer`. Episodes are limited to 50 steps and end early on success.
 
-In single-process code (e.g. evaluation), a plain import works as well:
-
-```python
-import gymnasium as gym
-import panda_mujoco_gym
-
-gym.register_envs(panda_mujoco_gym)  
-```
 
 ---
 ---
