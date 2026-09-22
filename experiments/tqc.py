@@ -1,4 +1,3 @@
-
 from sbx import TQC
 from stable_baselines3 import HerReplayBuffer
 from stable_baselines3.common.callbacks import EvalCallback
@@ -6,19 +5,19 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
-from utils.arg_handling import with_args
+from utils.arg_handling import with_args, prep_exp
 
-N_ENVS = 12 #cpu cores; run physics engine in all CPU cores but do gradient steps on GPU with jax.
-#ENV_NAME = "FrankaPickAndPlaceSparse-v0"
-LOG_DIR = "./exp_out/logs"
+#N_ENVS = 12 #cpu cores; run physics engine in all CPU cores but do gradient steps on GPU with jax.
 
 
 @with_args
 def run(args):
 
-    ENV_ID = f"panda_mujoco_gym:{args.task}"
-    env = make_vec_env(ENV_ID, n_envs=N_ENVS, vec_env_cls=SubprocVecEnv)
-    eval_env = make_vec_env(ENV_ID, n_envs=1)
+    env_id = f"panda_mujoco_gym:{args.task}"
+    env = make_vec_env(env_id, n_envs=args.n_envs, vec_env_cls=SubprocVecEnv)
+    eval_env = make_vec_env(env_id, n_envs=1)
+
+    log_dir, model_dir = prep_exp(args)
 
     model = TQC(
         "MultiInputPolicy",
@@ -43,19 +42,20 @@ def run(args):
 
     eval_callback = EvalCallback(
         eval_env=eval_env,
-        best_model_save_path=f"{LOG_DIR}/{args.task}/{args.seed}",
-        log_path=f"{LOG_DIR}/{args.task}/{args.seed}",
-        eval_freq=max(10_000 // N_ENVS, 1),
+        best_model_save_path=model_dir,
+        log_path=log_dir,
+        eval_freq=max(10_000 // args.n_envs, 1),
         n_eval_episodes=20,
         deterministic=True,
     )
 
     model.learn(total_timesteps=args.n_steps, callback=eval_callback)
 
-    model.save(f"{LOG_DIR}/tqc_her_final/{args.task}/{args.seed}")
+    model.save(f"{model_dir}/tqc_her_final")
     mean_reward, std_reward = evaluate_policy(model, eval_env, n_eval_episodes=10, deterministic=True)
 
     print(f"mean_reward={mean_reward:.2f} +/- {std_reward:.2f}")
+
 if __name__ == "__main__":
     run()
 

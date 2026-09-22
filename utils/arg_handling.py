@@ -1,11 +1,20 @@
 import argparse
 import functools
+from pathlib import Path
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
         "-en",
+        "--experiment_name",
+        help="Experiment name.",
+        type=str,
+        required=True,
+    )
+    parser.add_argument(
+        "-tk",
         "--task",
         help="Task name.",
         type=str,
@@ -75,6 +84,14 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=10_000,
     )
+    parser.add_argument(
+        "-nnvs",
+        "--n_envs",
+        help="Number of Envs in VecEnv.",
+        type=int,
+        default=12,
+    )
+
     return parser
 
 def parse_args(argvs=None) -> argparse.Namespace:
@@ -87,5 +104,13 @@ def with_args(func):
         return func(args)
     return wrapper
 
+def prep_exp(args):
+    log_dir = f"./exp_out/{args.experiment_name}/{args.task}/{args.seed}/logs/"
+    model_dir = f"./exp_out/{args.experiment_name}/{args.task}/{args.seed}/models/"
 
+    if Path(model_dir).exists():
+        raise FileExistsError(
+            f"{model_dir} already exists. Delete it or use a different seed/task."
+        )
+    return log_dir, model_dir
 
