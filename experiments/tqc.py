@@ -1,5 +1,3 @@
-import sys
-import argparse
 
 from sbx import TQC
 from stable_baselines3 import HerReplayBuffer
@@ -8,13 +6,15 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
+from utils.arg_handling import with_args
+
 N_ENVS = 12 #cpu cores; run physics engine in all CPU cores but do gradient steps on GPU with jax.
 #ENV_NAME = "FrankaPickAndPlaceSparse-v0"
-LOG_DIR = "./logs"
+LOG_DIR = "./exp_out/logs"
 
 
 @with_args
-def run(argvs=sys.argv[1:]):
+def run(args):
 
     ENV_ID = f"panda_mujoco_gym:{args.task}"
     env = make_vec_env(ENV_ID, n_envs=N_ENVS, vec_env_cls=SubprocVecEnv)
@@ -43,8 +43,8 @@ def run(argvs=sys.argv[1:]):
 
     eval_callback = EvalCallback(
         eval_env=eval_env,
-        best_model_save_path=f"{LOG_DIR}/{ENV_ID}/",
-        log_path=f"{LOG_DIR}/{ENV_ID}/",
+        best_model_save_path=f"{LOG_DIR}/{args.task}/{args.seed}",
+        log_path=f"{LOG_DIR}/{args.task}/{args.seed}",
         eval_freq=max(10_000 // N_ENVS, 1),
         n_eval_episodes=20,
         deterministic=True,
@@ -52,12 +52,10 @@ def run(argvs=sys.argv[1:]):
 
     model.learn(total_timesteps=args.n_steps, callback=eval_callback)
 
-    model.save(f"{LOG_DIR}/tqc_her_final/")
+    model.save(f"{LOG_DIR}/tqc_her_final/{args.task}/{args.seed}")
     mean_reward, std_reward = evaluate_policy(model, eval_env, n_eval_episodes=10, deterministic=True)
 
     print(f"mean_reward={mean_reward:.2f} +/- {std_reward:.2f}")
 if __name__ == "__main__":
     run()
 
-
-# build config management and seeding
