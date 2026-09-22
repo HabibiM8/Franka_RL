@@ -62,16 +62,6 @@ Franka_RL/
 
 ---
 
-## Environments
-
-| Env ID | Task | Actions |
-|---|---|---|
-| `FrankaPushSparse-v0` / `FrankaPushDense-v0` | push the cube to a target on the table | 3 (end-effector xyz) |
-| `FrankaSlideSparse-v0` / `FrankaSlideDense-v0` | strike a puck to a target on a low-friction table | 3 |
-| `FrankaPickAndPlaceSparse-v0` / `FrankaPickAndPlaceDense-v0` | pick the cube and place it at a target, possibly in the air | 4 (xyz + gripper) |
-
-All environments use the multi-goal API: the observation is a dict with `observation`, `achieved_goal` and
-`desired_goal`, so they work with `HerReplayBuffer`. Episodes are limited to 50 steps and end early on success.
 
 
 ---
