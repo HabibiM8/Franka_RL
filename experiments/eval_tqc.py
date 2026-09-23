@@ -3,7 +3,6 @@ import time
 from sbx import TQC
 import gymnasium as gym
 
-
 ENV_NAME = "FrankaPickAndPlaceSparse-v0"
 ENV_ID = f"panda_mujoco_gym:{ENV_NAME}"
 MODEL_PATH=f"./logs/{ENV_ID}/best_model"
@@ -11,15 +10,12 @@ MODEL_PATH=f"./logs/{ENV_ID}/best_model"
 N_EPISODES = 50
 
 def run():
-    #gym.register_envs(gymnasium_robotics)
-    #env = gym.make(ENV_ID, render_mode='human')
     env = gym.make(ENV_ID, render_mode="human")
-
 
     model = TQC.load(
         MODEL_PATH,
         env=env,
-        custom_objects={"buffer_size": 1, "learning_satrts": 0},
+        custom_objects={"buffer_size": 1, "learning_starts": 0},
         device="cpu",
     )
 
