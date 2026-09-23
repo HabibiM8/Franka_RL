@@ -59,6 +59,6 @@ function parse_arguments() {
         N_PARALLEL_SEEDS=1
     fi
 
-    [ -d experiments/$ENV_NAME/logs/$EXPERIMENT_NAME/$ALGO_NAME ] || mkdir -p experiments/$ENV_NAME/logs/$EXPERIMENT_NAME/$ALGO_NAME
+    [ -d experiments/exp_out/$EXPERIMENT_NAME/$TASK/logs ] || mkdir -p experiments/exp_out/$EXPERIMENT_NAME/$TASK/models
 
 }
