@@ -105,8 +105,8 @@ def with_args(func):
     return wrapper
 
 def prep_exp(args):
-    log_dir = f"./exp_out/{args.experiment_name}/{args.task}/{args.seed}/logs/"
-    model_dir = f"./exp_out/{args.experiment_name}/{args.task}/{args.seed}/models/"
+    log_dir = f"./exp_out/{args.experiment_name}/{args.task}/{args.seed}/logs"
+    model_dir = f"./exp_out/{args.experiment_name}/{args.task}/{args.seed}/models"
 
     if Path(model_dir).exists():
         raise FileExistsError(
