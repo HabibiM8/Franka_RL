@@ -91,6 +91,14 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=12,
     )
+    parser.add_argument(
+        "-dr",
+        "--domain_randomization",
+        help="Adding Noise to: end-effector position, episodic action gain and noise, "
+             "sticky actions, scaling the cubes mass, joint noise.",
+        default=False,
+        action="store_true",
+    )
 
     return parser
 

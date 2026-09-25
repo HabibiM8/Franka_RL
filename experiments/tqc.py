@@ -6,6 +6,7 @@ from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
 from utils.arg_handling import with_args, prep_exp
+from utils.domain_randomization import DRConfig, DomainRandomization
 
 #N_ENVS = 12 #cpu cores; run physics engine in all CPU cores but do gradient steps on GPU with jax.
 
@@ -13,8 +14,12 @@ from utils.arg_handling import with_args, prep_exp
 @with_args
 def run(args):
 
+    # ... DRConfig(max_delay=args.max_delay) ...
+    domain_randomizer = dict(wrapper_class=DomainRandomization,
+                             wrapper_kwargs=dict(cfg=DRConfig())) if args.domain_randomization else {}
+
     env_id = f"panda_mujoco_gym:{args.task}"
-    env = make_vec_env(env_id, n_envs=args.n_envs, vec_env_cls=SubprocVecEnv)
+    env = make_vec_env(env_id, n_envs=args.n_envs, vec_env_cls=SubprocVecEnv, **domain_randomizer)
     eval_env = make_vec_env(env_id, n_envs=1)
 
     log_dir, model_dir = prep_exp(args)
