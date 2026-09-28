@@ -44,6 +44,12 @@ function parse_arguments() {
                 shift
                 shift
                 ;;
+            --n_envs)
+                N_ENVS=$2
+                ARGS="$ARGS $1 $2"
+                shift
+                shift
+                ;;
             -?* | ?*)
                 ARGS="$ARGS $1"
                 shift
@@ -64,6 +70,7 @@ function parse_arguments() {
     then
         N_PARALLEL_SEEDS=1
     fi
+
 
     [ -d experiments/exp_out/$EXPERIMENT_NAME/$TASK/slurm ] || mkdir -p experiments/exp_out/$EXPERIMENT_NAME/$TASK/slurm
     [ -d experiments/exp_out/$EXPERIMENT_NAME/$TASK/logs ] || mkdir -p experiments/exp_out/$EXPERIMENT_NAME/$TASK/logs

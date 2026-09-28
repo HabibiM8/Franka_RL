@@ -6,6 +6,8 @@ FIRST_SEED=$SLURM_ARRAY_TASK_ID
 LAST_SEED=$((N_PARALLEL_SEEDS + SLURM_ARRAY_TASK_ID - 1))
 
 source env/bin/activate
+export XLA_PYTHON_CLIENT_PREALLOCATE=false #lets several seeds share one GPU
+export OMP_NUM_THREADS=1 #stops every worker from spawning a thread per core
 for (( seed=$FIRST_SEED; seed<=$LAST_SEED; seed++ ))
 do
     python3 experiments/$ALGO_NAME.py --experiment_name $EXPERIMENT_NAME --seed $seed $ARGS &> experiments/exp_out/$EXPERIMENT_NAME/$TASK/logs/train_$seed.out &

@@ -89,7 +89,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--n_envs",
         help="Number of Envs in VecEnv.",
         type=int,
-        default=12,
+        default=1,
     )
     parser.add_argument(
         "-dr",

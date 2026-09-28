@@ -1,3 +1,6 @@
+import os
+import jax
+
 from sbx import TQC
 from stable_baselines3 import HerReplayBuffer
 from stable_baselines3.common.callbacks import EvalCallback
@@ -42,8 +45,13 @@ def run(args):
         verbose=1,
         gradient_steps=-1,
         train_freq=1,
-        seed=args.seed
+        seed=args.seed,
+        tensorboard_log=log_dir,
     )
+    print(f"CPU cores available: {len(os.sched_getaffinity(0))} | n_envs: {args.n_envs} | jax backend: {jax.default_backend()}")
+    print("args:", vars(args))
+    print("policy_kwargs:", model.policy_kwargs, "| batch_size:", model.batch_size, "| gamma:", model.gamma,
+          "| tau:", model.tau, "| learning_starts:", model.learning_starts, "| gradient_steps:", model.gradient_steps)
 
     eval_callback = EvalCallback(
         eval_env=eval_env,
