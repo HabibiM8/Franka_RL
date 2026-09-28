@@ -7,6 +7,6 @@ SHARED_ARGS="--features 512 512 512 --buffer_size 1_000_000 --batch_size 2048 \
 
 PLATFORM="cluster/cluster"  # cluster/cluster lichtenberg/cluster local/local
 
-launch_job/${PLATFORM}_tqc.sh --first_seed 1 --last_seed 1 --n_parallel_seeds 1 $SHARED_ARGS \
-    --experiment_name "tqc_test_push${TASK}"
+launch_job/${PLATFORM}_tqc.sh --first_seed 1 --last_seed 2 --n_parallel_seeds 1 $SHARED_ARGS \
+    --experiment_name "tqc_test_${TASK}"
 

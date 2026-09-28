@@ -38,6 +38,12 @@ function parse_arguments() {
                 shift
                 shift
                 ;;
+            --task)
+                TASK=$2
+                ARGS="$ARGS $1 $2"
+                shift
+                shift
+                ;;
             -?* | ?*)
                 ARGS="$ARGS $1"
                 shift
@@ -59,9 +65,7 @@ function parse_arguments() {
         N_PARALLEL_SEEDS=1
     fi
 
-    # folder for SLURM's own --output file (used in cluster_tqc.sh)
-    [ -d experiments/$ENV_NAME/logs/$EXPERIMENT_NAME/$ALGO_NAME ] || mkdir -p experiments/$ENV_NAME/logs/$EXPERIMENT_NAME/$ALGO_NAME
-    # folder for the training output (used in train.sh)
+    [ -d experiments/exp_out/$EXPERIMENT_NAME/$TASK/slurm ] || mkdir -p experiments/exp_out/$EXPERIMENT_NAME/$TASK/slurm
     [ -d experiments/exp_out/$EXPERIMENT_NAME/$TASK/logs ] || mkdir -p experiments/exp_out/$EXPERIMENT_NAME/$TASK/logs
 
 }
