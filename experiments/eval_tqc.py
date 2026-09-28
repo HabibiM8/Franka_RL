@@ -3,10 +3,12 @@ import time
 from sbx import TQC
 import gymnasium as gym
 
-ENV_NAME = "FrankaPickAndPlaceSparse-v0"
+#ENV_NAME = "FrankaPickAndPlaceSparse-v0"
+ENV_NAME = "FrankaPushSparse-v0"
 ENV_ID = f"panda_mujoco_gym:{ENV_NAME}"
-MODEL_PATH=f"./logs/{ENV_ID}/best_model"
 
+#MODEL_PATH=f"exp_out/tqc_test_pickplaceFrankaPickAndPlaceSparse-v0/FrankaPickAndPlaceSparse-v0/1/models/best_model"
+MODEL_PATH=f"exp_out/tqc_test_FrankaPushSparse-v0/FrankaPushSparse-v0/1/models/best_model"
 N_EPISODES = 50
 
 def run():
@@ -27,7 +29,7 @@ def run():
         while not (terminated or truncated):
             action, _states = model.predict(obs, deterministic=True)
             obs, reward, terminated, truncated, info = env.step(action)
-            time.sleep(0.03)
+            time.sleep(0.05)
 
 
         success = bool(info.get("is_success", 0.0))
