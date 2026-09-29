@@ -1,7 +1,7 @@
 # Franka_RL (frankapp)
 
 Reinforcement learning for the Franka Emika Panda on manipulation tasks (push, slide, pick & place).
-Physics runs in [MuJoCo](https://mujoco.org/) on the CPU (one process per core), while the neural network
+Physics in [MuJoCo](https://mujoco.org/) on the CPU, while the neural network
 updates run on the GPU through [SBX](https://github.com/araffin/sbx) (Stable-Baselines3 in JAX).
 
 The current baseline is **TQC + HER** on the goal-conditioned Franka environments from
@@ -9,14 +9,6 @@ The current baseline is **TQC + HER** on the goal-conditioned Franka environment
 
 ---
 
-## Requirements
-
-- Linux (x86_64)
-- NVIDIA GPU with a driver that supports **CUDA 12** (check with `nvidia-smi`)
-- Python 3.12
-
-You do **not** need a system-wide CUDA toolkit. `jax[cuda12]` installs the CUDA and cuDNN libraries as pip wheels
-inside the virtual environment.
 
 ---
 
@@ -69,7 +61,6 @@ Franka_RL/
 
 ## Citations
 
-This project builds on the following work. Please cite them if you use this repository.
 
 **Franka MuJoCo environments (panda_mujoco_gym)**
 
