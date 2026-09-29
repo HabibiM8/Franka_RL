@@ -39,17 +39,16 @@ env.close()
 
 ```
 Franka_RL/
-├── setup.cfg / setup.py     # package metadata and dependencies
-├── frankapp/                # own code (wrappers, utilities, future tasks)
-├── panda_mujoco_gym/        # vendored Franka MuJoCo environments (MIT, see below)
-│   ├── __init__.py          # registers the env IDs with gymnasium
-│   ├── envs/                # FrankaEnv base class + one subclass per task
-│   └── assets/              # MuJoCo XML scenes (Menagerie Panda model)
+├── setup.cfg / setup.py     
+├── frankapp/                
+├── panda_mujoco_gym/          
+│   ├── envs/                
+│   └── assets/      
 ├── experiments/
-│   ├── train_tqc.py         # training: TQC + HER, 12 parallel envs
-│   └── eval_tqc.py          # evaluation with viewer and success rate
+│   ├── train_tqc.py 
+│   └── eval_tqc.py  
 ├── tests/
-└── logs/                    # checkpoints and eval logs (created on training)
+└── logs/            
 ```
 
 ---
