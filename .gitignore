@@ -12,6 +12,7 @@ dist/
 .ruff_cache/
 # training outputs
 runs/
+exp_out/
 logs/
 rl-trained-agents/
 tb_logs/

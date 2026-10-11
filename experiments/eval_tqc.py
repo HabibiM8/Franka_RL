@@ -3,16 +3,31 @@ import time
 from sbx import TQC
 import gymnasium as gym
 
+from gymnasium.wrappers import RecordVideo
+
+#TODO: clean up this mess
 #ENV_NAME = "FrankaPickAndPlaceSparse-v0"
 ENV_NAME = "FrankaPushSparse-v0"
+
 ENV_ID = f"panda_mujoco_gym:{ENV_NAME}"
 
-#MODEL_PATH=f"exp_out/tqc_test_pickplaceFrankaPickAndPlaceSparse-v0/FrankaPickAndPlaceSparse-v0/1/models/best_model"
+#MODEL_PATH=f"exp_out/tqc_test_FrankaPickAndPlaceSparse-v0/FrankaPickAndPlaceSparse-v0/1/models/best_model"
 MODEL_PATH=f"exp_out/tqc_test_FrankaPushSparse-v0/FrankaPushSparse-v0/1/models/best_model"
 N_EPISODES = 50
+N_RECORD=10
 
 def run():
-    env = gym.make(ENV_ID, render_mode="human")
+    env = gym.make(ENV_ID, render_mode="rgb_array") # human
+    max_steps = env.spec.max_episode_steps
+
+    env = RecordVideo(
+        env,
+        video_folder="videos",
+        name_prefix= f"tqc_{ENV_NAME}",
+        episode_trigger=lambda ep: ep == 0,
+        video_length= N_RECORD * (max_steps + 1),
+        #fps = env.metadata["render_fps"] // 2,
+    )
 
     model = TQC.load(
         MODEL_PATH,
