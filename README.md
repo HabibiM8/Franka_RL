@@ -1,3 +1,11 @@
+
+
+https://github.com/user-attachments/assets/5f64bfef-2925-4e43-8589-23d7d6269636
+
+
+
+https://github.com/user-attachments/assets/4ad5a8a0-97a2-4620-af98-519b0cb6576d
+
 # Franka_RL (frankapp)
 
 Reinforcement learning for the Franka Emika Panda on manipulation tasks (push, slide, pick & place).
